@@ -8,14 +8,12 @@ databases:
 
 services:
   # Base de Datos Redis (Caché)
-  - type: redis
+  - type: keyvalue
     name: evaluacion-desempeno-redis
     plan: free
     region: ohio
     maxmemoryPolicy: noeviction
-    ipAllowList:
-      - source: 0.0.0.0/0
-        description: allow all IPs
+    ipAllowList: []
 
   # Backend (NestJS)
   - type: web
@@ -33,7 +31,7 @@ services:
           property: connectionString
       - key: REDIS_URL
         fromService:
-          type: redis
+          type: keyvalue
           name: evaluacion-desempeno-redis
           property: connectionString
       - key: JWT_SECRET
