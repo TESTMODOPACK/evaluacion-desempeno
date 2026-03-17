@@ -1,14 +1,17 @@
-import { Body, Controller, Get, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import { ReviewCyclesService } from './review-cycles.service';
 
 @Controller({ path: 'review-cycles', version: '1' })
 export class ReviewCyclesController {
-  @Get()
-  list() {
-    return { items: [], total: 0 };
+  constructor(private readonly reviewCyclesService: ReviewCyclesService) {}
+
+  @Get('organization/:orgId')
+  list(@Param('orgId') orgId: string) {
+    return this.reviewCyclesService.getCycles(orgId);
   }
 
-  @Post()
-  create(@Body() body: Record<string, unknown>) {
-    return { id: 'cycle-demo', status: 'DRAFT', ...body };
+  @Post('organization/:orgId')
+  create(@Param('orgId') orgId: string, @Body() body: any) {
+    return this.reviewCyclesService.createCycle(orgId, body);
   }
 }

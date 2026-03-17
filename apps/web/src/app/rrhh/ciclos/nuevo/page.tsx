@@ -1,13 +1,28 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Card } from '../../../../components/ui/Card';
 import { Button } from '../../../../components/ui/Button';
 import { Input } from '../../../../components/ui/Input';
 import { Badge } from '../../../../components/ui/Badge';
+import { api, CURRENT_ORG_ID } from '../../../../lib/api';
 
 export default function NuevoCicloPage() {
+  const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Form State
+  const [formData, setFormData] = useState({
+    name: '',
+    type: 'SEMI_ANNUAL',
+    selfReviewStart: '',
+    selfReviewEnd: '',
+    managerReviewStart: '',
+    managerReviewEnd: '',
+  });
 
   const steps = [
     { id: 1, title: 'Información General' },
@@ -19,6 +34,24 @@ export default function NuevoCicloPage() {
   const handleNext = () => setCurrentStep((prev) => Math.min(prev + 1, 4));
   const handleBack = () => setCurrentStep((prev) => Math.max(prev - 1, 1));
 
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = async () => {
+    try {
+      setIsSubmitting(true);
+      setError(null);
+      await api.post(`/review-cycles/organization/${CURRENT_ORG_ID}`, formData);
+      router.push('/'); // Redirecting to Dashboard for MVP success view
+    } catch (err: any) {
+      console.error('Failed to create cycle:', err);
+      setError(err.message || 'Error al crear el ciclo');
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <div className="mx-auto max-w-4xl space-y-8 animate-fade-in">
       <div className="flex items-center justify-between border-b border-border pb-6">
@@ -27,6 +60,12 @@ export default function NuevoCicloPage() {
           <p className="mt-1 text-slate-500">Configura los parámetros para la próxima ronda de evaluaciones.</p>
         </div>
       </div>
+
+      {error && (
+        <div className="rounded-lg bg-red-50 p-4 border border-red-200">
+          <p className="text-sm font-medium text-red-800">{error}</p>
+        </div>
+      )}
 
       {/* Navegador de Pasos (Wizard Stepper) */}
       <div className="relative">
@@ -62,13 +101,24 @@ export default function NuevoCicloPage() {
           <div className="space-y-6 animate-slide-up">
             <h3 className="text-lg font-semibold text-ink">Paso 1: Información General</h3>
             <div className="grid gap-6 md:grid-cols-2">
-              <Input label="Nombre del Ciclo" placeholder="Ej: Evaluación Q4 2026" />
+              <Input 
+                label="Nombre del Ciclo" 
+                placeholder="Ej: Evaluación Q4 2026" 
+                name="name"
+                value={formData.name}
+                onChange={handleChange}
+              />
               <div className="flex flex-col">
                 <label className="mb-1.5 text-sm font-medium text-slate-700">Tipo de Evaluación</label>
-                <select className="flex h-10 w-full rounded-md border border-border bg-white px-3 py-2 text-sm focus:border-transparent focus:outline-none focus:ring-2 focus:ring-accent">
-                  <option>360 Grados (Líder, Pares, Directos)</option>
-                  <option>180 Grados (Líder y Autoevaluación)</option>
-                  <option>90 Grados (Solo Líder hacia Directos)</option>
+                <select 
+                  name="type"
+                  value={formData.type}
+                  onChange={handleChange}
+                  className="flex h-10 w-full rounded-md border border-border bg-white px-3 py-2 text-sm focus:border-transparent focus:outline-none focus:ring-2 focus:ring-accent"
+                >
+                  <option value="SEMI_ANNUAL">360 Grados (Líder, Pares, Directos)</option>
+                  <option value="ANNUAL">180 Grados (Líder y Autoevaluación)</option>
+                  <option value="PROJECT">90 Grados (Solo Líder hacia Directos)</option>
                 </select>
               </div>
               <div className="col-span-2">
@@ -128,9 +178,9 @@ export default function NuevoCicloPage() {
             <div className="space-y-4">
                <div className="flex items-center gap-4 rounded-lg bg-slate-50 p-4 border border-slate-100">
                   <div className="w-48 font-medium">1. Autoevaluación</div>
-                  <Input type="date" />
+                  <Input type="date" name="selfReviewStart" value={formData.selfReviewStart} onChange={handleChange} />
                   <span className="text-slate-400">al</span>
-                  <Input type="date" />
+                  <Input type="date" name="selfReviewEnd" value={formData.selfReviewEnd} onChange={handleChange} />
                </div>
                <div className="flex items-center gap-4 rounded-lg bg-slate-50 p-4 border border-slate-100">
                   <div className="w-48 font-medium">2. Evaluación de Pares</div>
@@ -140,9 +190,9 @@ export default function NuevoCicloPage() {
                </div>
                <div className="flex items-center gap-4 rounded-lg bg-slate-50 p-4 border border-slate-100">
                   <div className="w-48 font-medium">3. Evaluación de Líder</div>
-                  <Input type="date" />
+                  <Input type="date" name="managerReviewStart" value={formData.managerReviewStart} onChange={handleChange} />
                   <span className="text-slate-400">al</span>
-                  <Input type="date" />
+                  <Input type="date" name="managerReviewEnd" value={formData.managerReviewEnd} onChange={handleChange} />
                </div>
             </div>
           </div>
@@ -152,13 +202,17 @@ export default function NuevoCicloPage() {
 
       {/* Controles del Footer */}
       <div className="flex items-center justify-between border-t border-border pt-6">
-        <Button variant="ghost" onClick={handleBack} disabled={currentStep === 1}>
+        <Button variant="ghost" onClick={handleBack} disabled={currentStep === 1 || isSubmitting}>
           Atrás
         </Button>
         <div className="flex gap-4">
-          <Button variant="outline">Guardar Borrador</Button>
-          <Button variant="primary" onClick={handleNext}>
-            {currentStep === 4 ? 'Publicar Ciclo' : 'Continuar'}
+          <Button variant="outline" disabled={isSubmitting}>Guardar Borrador</Button>
+          <Button 
+            variant="primary" 
+            onClick={currentStep === 4 ? handleSubmit : handleNext}
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? 'Guardando...' : currentStep === 4 ? 'Publicar Ciclo' : 'Continuar'}
           </Button>
         </div>
       </div>

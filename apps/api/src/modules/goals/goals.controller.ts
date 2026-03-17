@@ -1,14 +1,12 @@
-import { Body, Controller, Get, Post } from '@nestjs/common';
+import { Controller, Get, Param } from '@nestjs/common';
+import { GoalsService } from './goals.service';
 
 @Controller({ path: 'goals', version: '1' })
 export class GoalsController {
-  @Get()
-  list() {
-    return { items: [], total: 0 };
-  }
+  constructor(private readonly goalsService: GoalsService) {}
 
-  @Post()
-  create(@Body() body: Record<string, unknown>) {
-    return { id: 'goal-demo', ...body };
+  @Get('employee/:employeeId')
+  getEmployeeGoals(@Param('employeeId') employeeId: string) {
+    return this.goalsService.getEmployeeGoals(employeeId);
   }
 }

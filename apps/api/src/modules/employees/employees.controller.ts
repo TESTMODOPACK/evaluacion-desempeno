@@ -1,14 +1,17 @@
-import { Body, Controller, Get, Post } from '@nestjs/common';
+import { Controller, Get, Param } from '@nestjs/common';
+import { EmployeesService } from './employees.service';
 
 @Controller({ path: 'employees', version: '1' })
 export class EmployeesController {
-  @Get()
-  list() {
-    return { items: [], total: 0 };
+  constructor(private readonly employeesService: EmployeesService) {}
+
+  @Get(':id/dashboard')
+  getDashboardMetrics(@Param('id') id: string) {
+    return this.employeesService.getDashboardMetrics(id);
   }
 
-  @Post()
-  create(@Body() body: Record<string, unknown>) {
-    return { id: 'emp-demo', ...body };
+  @Get(':id/profile')
+  getProfile(@Param('id') id: string) {
+    return this.employeesService.getEmployeeProfile(id);
   }
 }
