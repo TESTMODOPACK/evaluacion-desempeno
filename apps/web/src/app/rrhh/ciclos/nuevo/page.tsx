@@ -33,22 +33,22 @@ export default function NuevoCicloPage() {
         <div className="absolute left-0 top-1/2 h-0.5 w-full -translate-y-1/2 bg-slate-200"></div>
         <div
           className="absolute left-0 top-1/2 h-0.5 -translate-y-1/2 bg-accent transition-all duration-300"
-          style={{ width: \`\${((currentStep - 1) / (steps.length - 1)) * 100}%\` }}
+          style={{ width: `${((currentStep - 1) / (steps.length - 1)) * 100}%` }}
         ></div>
         
         <ul className="relative flex justify-between">
           {steps.map((step) => (
             <li key={step.id} className="flex flex-col items-center gap-2">
               <div
-                className={\`flex h-10 w-10 items-center justify-center rounded-full border-2 font-bold transition-colors \${
+                className={`flex h-10 w-10 items-center justify-center rounded-full border-2 font-bold transition-colors ${
                   currentStep >= step.id
                     ? 'border-accent bg-accent text-white'
                     : 'border-slate-300 bg-white text-slate-400'
-                }\`}
+                }`}
               >
                 {currentStep > step.id ? '✓' : step.id}
               </div>
-              <span className={\`text-xs font-medium \${currentStep >= step.id ? 'text-ink' : 'text-slate-400'}\`}>
+              <span className={`text-xs font-medium ${currentStep >= step.id ? 'text-ink' : 'text-slate-400'}`}>
                 {step.title}
               </span>
             </li>
@@ -93,7 +93,7 @@ export default function NuevoCicloPage() {
                   { name: 'Desempeño Ventas', tags: ['Metas Comerciales', 'Atención'] },
                   { name: 'Nueva Plantilla en Blanco', tags: [] }
                 ].map((tpl, i) => (
-                  <div key={i} className={\`cursor-pointer rounded-lg border p-4 transition-all \${i === 0 ? 'border-accent bg-accent/5 ring-1 ring-accent' : 'border-border hover:border-slate-400'}\`}>
+                  <div key={i} className={`cursor-pointer rounded-lg border p-4 transition-all ${i === 0 ? 'border-accent bg-accent/5 ring-1 ring-accent' : 'border-border hover:border-slate-400'}`}>
                     <div className="flex items-center justify-between mb-2">
                        <span className="font-semibold text-ink">{tpl.name}</span>
                        {i === 0 && <span className="text-accent">✓</span>}
