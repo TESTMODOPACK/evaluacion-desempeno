@@ -13,6 +13,9 @@ services:
     plan: free
     region: ohio
     maxmemoryPolicy: noeviction
+    ipAllowList:
+      - source: 0.0.0.0/0
+        description: allow all IPs
 
   # Backend (NestJS)
   - type: web
