@@ -1,0 +1,852 @@
+// ============================================================
+// PRISMA SCHEMA — Evaluación de Desempeño
+// PostgreSQL + Row Level Security ready (multi-tenant via organizationId)
+// ============================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+// IDENTITY & ORG
+// ============================================================
+
+model Organization {
+  id          String   @id @default(uuid())
+  name        String
+  slug        String   @unique
+  logoUrl     String?
+  locale      String   @default("es-ES")
+  timezone    String   @default("Europe/Madrid")
+  isActive    Boolean  @default(true)
+  settings    Json     @default("{}")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  users               User[]
+  employees           Employee[]
+  departments         Department[]
+  teams               Team[]
+  reviewTemplates     ReviewTemplate[]
+  reviewCycles        ReviewCycle[]
+  feedbackItems       FeedbackItem[]
+  objectives          Objective[]
+  calibrationSessions CalibrationSession[]
+  auditLogs           AuditLog[]
+  exportJobs          ExportJob[]
+  notifications       Notification[]
+
+  @@map("organizations")
+}
+
+model User {
+  id             String    @id @default(uuid())
+  organizationId String
+  email          String
+  passwordHash   String?
+  name           String
+  role           UserRole  @default(EMPLOYEE)
+  isActive       Boolean   @default(true)
+  lastLoginAt    DateTime?
+  avatarUrl      String?
+  preferences    Json      @default("{}")
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  employee     Employee?
+  auditLogs    AuditLog[]
+  notifications Notification[]
+
+  @@unique([organizationId, email])
+  @@index([organizationId])
+  @@map("users")
+}
+
+enum UserRole {
+  SUPER_ADMIN
+  HR_ADMIN
+  HR_BUSINESS_PARTNER
+  MANAGER
+  EMPLOYEE
+  VIEWER
+}
+
+// ============================================================
+// EMPLOYEES & ORG STRUCTURE
+// ============================================================
+
+model Employee {
+  id             String   @id @default(uuid())
+  organizationId String
+  userId         String?  @unique
+  employeeCode   String
+  firstName      String
+  lastName       String
+  fullName       String
+  email          String
+  position       String
+  level          String?
+  departmentId   String?
+  teamId         String?
+  managerId      String?
+  hireDate       DateTime
+  terminatedAt   DateTime?
+  isActive       Boolean  @default(true)
+  metadata       Json     @default("{}")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User?        @relation(fields: [userId], references: [id])
+  department   Department?  @relation(fields: [departmentId], references: [id])
+  team         Team?        @relation(fields: [teamId], references: [id])
+  manager      Employee?    @relation("ManagerRelations", fields: [managerId], references: [id])
+  directReports Employee[]  @relation("ManagerRelations")
+
+  reviewInstances      ReviewInstance[]    @relation("RevieweeInstances")
+  managerInstances     ReviewInstance[]    @relation("ManagerInstances")
+  nominationsGiven     Nomination[]        @relation("NominatorEmployee")
+  nominationsReceived  Nomination[]        @relation("NomineeEmployee")
+  raterAssignments     RaterAssignment[]   @relation("RaterEmployee")
+  raterSubjects        RaterAssignment[]   @relation("SubjectEmployee")
+  feedbackGiven        FeedbackItem[]      @relation("FeedbackFrom")
+  feedbackReceived     FeedbackItem[]      @relation("FeedbackTo")
+  objectives           Objective[]
+  calibrationSubjects  CalibrationAdjustment[]
+  kpiValues            KPIValue[]
+
+  @@unique([organizationId, employeeCode])
+  @@unique([organizationId, email])
+  @@index([organizationId])
+  @@index([departmentId])
+  @@index([managerId])
+  @@map("employees")
+}
+
+model Department {
+  id             String  @id @default(uuid())
+  organizationId String
+  name           String
+  code           String?
+  parentId       String?
+  headId         String?
+  isActive       Boolean @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  parent       Department?  @relation("DeptHierarchy", fields: [parentId], references: [id])
+  children     Department[] @relation("DeptHierarchy")
+  employees    Employee[]
+  teams        Team[]
+
+  @@unique([organizationId, name])
+  @@index([organizationId])
+  @@map("departments")
+}
+
+model Team {
+  id             String  @id @default(uuid())
+  organizationId String
+  departmentId   String?
+  name           String
+  description    String?
+  leadId         String?
+  isActive       Boolean @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  department   Department?  @relation(fields: [departmentId], references: [id])
+  employees    Employee[]
+
+  @@unique([organizationId, name])
+  @@index([organizationId])
+  @@map("teams")
+}
+
+// ============================================================
+// REVIEW TEMPLATES
+// ============================================================
+
+model ReviewTemplate {
+  id             String   @id @default(uuid())
+  organizationId String
+  name           String
+  description    String?
+  version        Int      @default(1)
+  isActive       Boolean  @default(true)
+  createdById    String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  sections     ReviewSection[]
+  reviewCycles ReviewCycle[]
+
+  @@index([organizationId])
+  @@map("review_templates")
+}
+
+model ReviewSection {
+  id          String  @id @default(uuid())
+  templateId  String
+  title       String
+  description String?
+  order       Int     @default(0)
+  weight      Float   @default(1.0)
+  isRequired  Boolean @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  template  ReviewTemplate   @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  questions ReviewQuestion[]
+
+  @@index([templateId])
+  @@map("review_sections")
+}
+
+model ReviewQuestion {
+  id             String       @id @default(uuid())
+  sectionId      String
+  text           String
+  helpText       String?
+  type           QuestionType
+  required       Boolean      @default(true)
+  order          Int          @default(0)
+  weight         Float        @default(1.0)
+  ratingScaleId  String?
+  options        Json?        // para MULTIPLE_CHOICE
+  audience       String[]     @default(["SELF", "MANAGER", "PEER"]) // quiénes responden
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  section       ReviewSection    @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  ratingScale   RatingScale?     @relation(fields: [ratingScaleId], references: [id])
+  responses     ReviewResponse[]
+
+  @@index([sectionId])
+  @@map("review_questions")
+}
+
+model RatingScale {
+  id             String @id @default(uuid())
+  organizationId String?
+  name           String
+  minValue       Float
+  maxValue       Float
+  step           Float  @default(1.0)
+  labels         Json   // { "1": "Muy por debajo", "2": "Por debajo", ... }
+  createdAt      DateTime @default(now())
+
+  questions ReviewQuestion[]
+
+  @@map("rating_scales")
+}
+
+enum QuestionType {
+  RATING
+  TEXT
+  MULTIPLE_CHOICE
+  BOOLEAN
+  NPS
+}
+
+// ============================================================
+// REVIEW CYCLES & INSTANCES
+// ============================================================
+
+model ReviewCycle {
+  id                  String      @id @default(uuid())
+  organizationId      String
+  templateId          String
+  name                String
+  type                CycleType
+  status              CycleStatus @default(DRAFT)
+  selfReviewStart     DateTime
+  selfReviewEnd       DateTime
+  peerReviewStart     DateTime?
+  peerReviewEnd       DateTime?
+  managerReviewStart  DateTime
+  managerReviewEnd    DateTime
+  calibrationStart    DateTime?
+  calibrationEnd      DateTime?
+  resultsReleaseDate  DateTime?
+  populationFilter    Json        @default("{\"includeAll\": true}")
+  settings            Json        @default("{}")
+  createdById         String?
+  launchedAt          DateTime?
+  completedAt         DateTime?
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
+
+  organization        Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  template            ReviewTemplate       @relation(fields: [templateId], references: [id])
+  instances           ReviewInstance[]
+  nominations         Nomination[]
+  raterAssignments    RaterAssignment[]
+  anonymityRules      AnonymityRule[]
+  aggregatedResults   AggregatedResult[]
+  calibrationSessions CalibrationSession[]
+  notifications       Notification[]
+
+  @@index([organizationId])
+  @@index([status])
+  @@map("review_cycles")
+}
+
+enum CycleType {
+  ANNUAL
+  SEMI_ANNUAL
+  QUARTERLY
+  PROJECT
+  PROBATION
+  AD_HOC
+}
+
+enum CycleStatus {
+  DRAFT
+  ACTIVE
+  CALIBRATION
+  COMPLETED
+  CANCELLED
+}
+
+model ReviewInstance {
+  id              String               @id @default(uuid())
+  reviewCycleId   String
+  revieweeId      String
+  reviewerId      String?              // null = self review
+  managerId       String?
+  type            ReviewInstanceType
+  status          ReviewInstanceStatus @default(PENDING)
+  dueDate         DateTime?
+  submittedAt     DateTime?
+  calibratedAt    DateTime?
+  signedOffAt     DateTime?
+  acknowledgedAt  DateTime?
+  overallRating   Float?
+  raterRelation   String?
+  isAnonymous     Boolean              @default(false)
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+
+  reviewCycle ReviewCycle      @relation(fields: [reviewCycleId], references: [id], onDelete: Cascade)
+  reviewee    Employee         @relation("RevieweeInstances", fields: [revieweeId], references: [id])
+  manager     Employee?        @relation("ManagerInstances", fields: [managerId], references: [id])
+  responses   ReviewResponse[]
+  signoffs    ReviewSignoff[]
+
+  @@index([reviewCycleId])
+  @@index([revieweeId])
+  @@map("review_instances")
+}
+
+enum ReviewInstanceType {
+  SELF
+  MANAGER
+  PEER
+  UPWARD
+  EXTERNAL
+}
+
+enum ReviewInstanceStatus {
+  PENDING
+  IN_PROGRESS
+  SUBMITTED
+  CALIBRATED
+  SIGNED_OFF
+  ACKNOWLEDGED
+}
+
+model ReviewResponse {
+  id              String   @id @default(uuid())
+  instanceId      String
+  questionId      String
+  ratingValue     Float?
+  textValue       String?
+  choiceValue     String?
+  booleanValue    Boolean?
+  respondedAt     DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  instance ReviewInstance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  question ReviewQuestion @relation(fields: [questionId], references: [id])
+
+  @@unique([instanceId, questionId])
+  @@index([instanceId])
+  @@map("review_responses")
+}
+
+model ReviewSignoff {
+  id          String   @id @default(uuid())
+  instanceId  String
+  signedById  String
+  role        String   // MANAGER, HR, EMPLOYEE
+  signedAt    DateTime @default(now())
+  comments    String?
+  ipAddress   String?
+
+  instance ReviewInstance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+
+  @@index([instanceId])
+  @@map("review_signoffs")
+}
+
+// ============================================================
+// 360° EVALUACIONES
+// ============================================================
+
+model Nomination {
+  id               String           @id @default(uuid())
+  reviewCycleId    String
+  nominatorId      String
+  nomineeId        String           // el evaluado
+  nominatedRaterId String           // el rater propuesto
+  relationship     RaterRelationship
+  status           NominationStatus @default(PENDING)
+  justification    String?
+  reviewedById     String?
+  reviewedAt       DateTime?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  reviewCycle ReviewCycle @relation(fields: [reviewCycleId], references: [id], onDelete: Cascade)
+  nominator   Employee    @relation("NominatorEmployee", fields: [nominatorId], references: [id])
+  nominee     Employee    @relation("NomineeEmployee", fields: [nomineeId], references: [id])
+
+  @@index([reviewCycleId])
+  @@index([nomineeId])
+  @@map("nominations")
+}
+
+model RaterAssignment {
+  id            String            @id @default(uuid())
+  reviewCycleId String
+  subjectId     String            // empleado evaluado
+  raterId       String            // empleado que evalúa
+  relationship  RaterRelationship
+  isConfirmed   Boolean           @default(false)
+  declinedAt    DateTime?
+  declineReason String?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  reviewCycle ReviewCycle @relation(fields: [reviewCycleId], references: [id], onDelete: Cascade)
+  subject     Employee    @relation("SubjectEmployee", fields: [subjectId], references: [id])
+  rater       Employee    @relation("RaterEmployee", fields: [raterId], references: [id])
+
+  @@unique([reviewCycleId, subjectId, raterId])
+  @@index([reviewCycleId])
+  @@map("rater_assignments")
+}
+
+model AnonymityRule {
+  id              String @id @default(uuid())
+  reviewCycleId   String
+  raterGroup      String // PEER, DIRECT_REPORT, etc.
+  minRaters       Int    @default(3)
+  aggregateMethod String @default("AVERAGE")
+  createdAt       DateTime @default(now())
+
+  reviewCycle ReviewCycle @relation(fields: [reviewCycleId], references: [id], onDelete: Cascade)
+
+  @@index([reviewCycleId])
+  @@map("anonymity_rules")
+}
+
+model AggregatedResult {
+  id            String   @id @default(uuid())
+  reviewCycleId String
+  employeeId    String
+  raterGroup    String
+  questionId    String?
+  averageScore  Float?
+  responseCount Int
+  metadata      Json     @default("{}")
+  createdAt     DateTime @default(now())
+
+  reviewCycle ReviewCycle @relation(fields: [reviewCycleId], references: [id], onDelete: Cascade)
+
+  @@index([reviewCycleId, employeeId])
+  @@map("aggregated_results")
+}
+
+enum NominationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum RaterRelationship {
+  MANAGER
+  PEER
+  DIRECT_REPORT
+  CROSS_FUNCTIONAL
+  SELF
+  EXTERNAL
+}
+
+// ============================================================
+// FEEDBACK CONTINUO
+// ============================================================
+
+model FeedbackItem {
+  id             String            @id @default(uuid())
+  organizationId String
+  type           FeedbackType
+  visibility     FeedbackVisibility @default(PUBLIC)
+  fromEmployeeId String
+  toEmployeeId   String
+  content        String
+  reviewCycleId  String?
+  requestId      String?           // si es respuesta a una solicitud
+  isRead         Boolean           @default(false)
+  readAt         DateTime?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  from         Employee     @relation("FeedbackFrom", fields: [fromEmployeeId], references: [id])
+  to           Employee     @relation("FeedbackTo", fields: [toEmployeeId], references: [id])
+  tags         FeedbackTag[]
+
+  @@index([organizationId])
+  @@index([toEmployeeId])
+  @@index([fromEmployeeId])
+  @@map("feedback_items")
+}
+
+model FeedbackTag {
+  id         String @id @default(uuid())
+  feedbackId String
+  name       String
+  color      String?
+
+  feedback FeedbackItem @relation(fields: [feedbackId], references: [id], onDelete: Cascade)
+
+  @@index([feedbackId])
+  @@map("feedback_tags")
+}
+
+enum FeedbackType {
+  REQUESTED
+  SPONTANEOUS
+}
+
+enum FeedbackVisibility {
+  PUBLIC
+  MANAGER_ONLY
+  PRIVATE
+  ANONYMOUS
+}
+
+// ============================================================
+// OKR / GOALS
+// ============================================================
+
+model Objective {
+  id             String          @id @default(uuid())
+  organizationId String
+  title          String
+  description    String?
+  ownerId        String
+  parentId       String?
+  status         ObjectiveStatus @default(ACTIVE)
+  startDate      DateTime
+  endDate        DateTime
+  progress       Float           @default(0)
+  type           ObjectiveType   @default(INDIVIDUAL)
+  visibility     String          @default("TEAM") // PRIVATE, TEAM, DEPARTMENT, ORG
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  owner        Employee     @relation(fields: [ownerId], references: [id])
+  parent       Objective?   @relation("ObjectiveHierarchy", fields: [parentId], references: [id])
+  children     Objective[]  @relation("ObjectiveHierarchy")
+  keyResults   KeyResult[]
+
+  @@index([organizationId])
+  @@index([ownerId])
+  @@map("objectives")
+}
+
+enum ObjectiveStatus {
+  DRAFT
+  ACTIVE
+  AT_RISK
+  COMPLETED
+  CANCELLED
+}
+
+enum ObjectiveType {
+  INDIVIDUAL
+  TEAM
+  DEPARTMENT
+  COMPANY
+}
+
+model KeyResult {
+  id           String        @id @default(uuid())
+  objectiveId  String
+  title        String
+  type         KeyResultType
+  targetValue  Float
+  startValue   Float         @default(0)
+  currentValue Float         @default(0)
+  unit         String?
+  status       String        @default("ON_TRACK") // ON_TRACK, AT_RISK, BEHIND, COMPLETED
+  dueDate      DateTime?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  objective  Objective  @relation(fields: [objectiveId], references: [id], onDelete: Cascade)
+  checkIns   CheckIn[]
+  kpiValues  KPIValue[]
+
+  @@index([objectiveId])
+  @@map("key_results")
+}
+
+enum KeyResultType {
+  PERCENTAGE
+  NUMBER
+  CURRENCY
+  BOOLEAN
+  MILESTONE
+}
+
+model CheckIn {
+  id           String   @id @default(uuid())
+  keyResultId  String
+  authorId     String?
+  currentValue Float
+  confidence   Int      // 1-10
+  notes        String?
+  createdAt    DateTime @default(now())
+
+  keyResult KeyResult @relation(fields: [keyResultId], references: [id], onDelete: Cascade)
+
+  @@index([keyResultId])
+  @@map("check_ins")
+}
+
+model KPIValue {
+  id          String   @id @default(uuid())
+  keyResultId String?
+  employeeId  String
+  name        String
+  value       Float
+  target      Float?
+  unit        String?
+  period      String   // e.g. "2024-Q1"
+  source      String?  // manual, integration, etc.
+  capturedAt  DateTime @default(now())
+
+  keyResult KeyResult? @relation(fields: [keyResultId], references: [id])
+  employee  Employee   @relation(fields: [employeeId], references: [id])
+
+  @@index([employeeId])
+  @@map("kpi_values")
+}
+
+// ============================================================
+// CALIBRACIÓN 9-BOX
+// ============================================================
+
+model CalibrationSession {
+  id             String             @id @default(uuid())
+  organizationId String
+  reviewCycleId  String
+  name           String
+  facilitatorId  String?
+  status         CalibrationStatus  @default(OPEN)
+  scheduledAt    DateTime?
+  finalizedAt    DateTime?
+  notes          String?
+  scope          Json               @default("{}")
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  organization Organization             @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  reviewCycle  ReviewCycle              @relation(fields: [reviewCycleId], references: [id])
+  participants CalibrationParticipant[]
+  adjustments  CalibrationAdjustment[]
+
+  @@index([organizationId])
+  @@index([reviewCycleId])
+  @@map("calibration_sessions")
+}
+
+enum CalibrationStatus {
+  OPEN
+  IN_PROGRESS
+  FINALIZED
+}
+
+model CalibrationParticipant {
+  id          String   @id @default(uuid())
+  sessionId   String
+  userId      String
+  role        String   @default("REVIEWER") // FACILITATOR, REVIEWER
+  joinedAt    DateTime @default(now())
+
+  session CalibrationSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, userId])
+  @@index([sessionId])
+  @@map("calibration_participants")
+}
+
+model CalibrationAdjustment {
+  id               String          @id @default(uuid())
+  sessionId        String
+  employeeId       String
+  originalRating   Float?
+  proposedRating   Float
+  finalRating      Float?
+  originalPosition NineBoxPosition?
+  proposedPosition NineBoxPosition?
+  finalPosition    NineBoxPosition?
+  justification    String
+  adjustedById     String?
+  approvedById     String?
+  approvedAt       DateTime?
+  status           String          @default("PROPOSED") // PROPOSED, APPROVED, REJECTED
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  session  CalibrationSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  employee Employee           @relation(fields: [employeeId], references: [id])
+
+  @@index([sessionId])
+  @@index([employeeId])
+  @@map("calibration_adjustments")
+}
+
+enum NineBoxPosition {
+  STAR
+  HIGH_PERFORMER
+  BACKBONE
+  EMERGING
+  CORE
+  EFFECTIVE
+  QUESTION_MARK
+  DEVELOPING
+  UNDERPERFORMER
+}
+
+// ============================================================
+// AUDITORÍA & JOBS & NOTIFICACIONES
+// ============================================================
+
+model AuditLog {
+  id             String      @id @default(uuid())
+  organizationId String
+  userId         String?
+  action         AuditAction
+  entityType     String      // 'ReviewCycle', 'Employee', etc.
+  entityId       String?
+  before         Json?
+  after          Json?
+  metadata       Json        @default("{}")
+  ipAddress      String?
+  userAgent      String?
+  traceId        String?
+  createdAt      DateTime    @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User?        @relation(fields: [userId], references: [id])
+
+  @@index([organizationId])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+  LOGIN
+  LOGOUT
+  EXPORT
+  SIGNOFF
+  CALIBRATE
+  RATING_CHANGED
+  IMPORT
+  LAUNCH
+}
+
+model ExportJob {
+  id             String      @id @default(uuid())
+  organizationId String
+  requestedById  String?
+  type           String      // 'REVIEW_RESULTS', 'EMPLOYEE_LIST', etc.
+  status         String      @default("PENDING") // PENDING, PROCESSING, DONE, FAILED
+  filters        Json        @default("{}")
+  filePath       String?
+  fileSize       Int?
+  errorMessage   String?
+  startedAt      DateTime?
+  completedAt    DateTime?
+  expiresAt      DateTime?
+  createdAt      DateTime    @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@map("export_jobs")
+}
+
+model Notification {
+  id             String             @id @default(uuid())
+  organizationId String
+  userId         String
+  type           NotificationType
+  channel        NotificationChannel @default(IN_APP)
+  title          String
+  body           String
+  link           String?
+  isRead         Boolean            @default(false)
+  readAt         DateTime?
+  sentAt         DateTime?
+  reviewCycleId  String?
+  metadata       Json               @default("{}")
+  createdAt      DateTime           @default(now())
+
+  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User          @relation(fields: [userId], references: [id])
+  reviewCycle  ReviewCycle?  @relation(fields: [reviewCycleId], references: [id])
+
+  @@index([userId, isRead])
+  @@index([organizationId])
+  @@map("notifications")
+}
+
+enum NotificationType {
+  REVIEW_CYCLE_LAUNCHED
+  REVIEW_DUE_REMINDER
+  REVIEW_SUBMITTED
+  REVIEW_SIGNOFF_REQUIRED
+  FEEDBACK_RECEIVED
+  FEEDBACK_REQUESTED
+  NOMINATION_RECEIVED
+  CALIBRATION_STARTED
+  OKR_CHECKIN_REMINDER
+  EXPORT_READY
+}
+
+enum NotificationChannel {
+  IN_APP
+  EMAIL
+  SLACK
+  TEAMS
+}

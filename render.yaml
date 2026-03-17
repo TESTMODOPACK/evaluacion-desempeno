@@ -1,0 +1,40 @@
+services:
+  # Base de Datos PostgreSQL
+  - type: psql
+    name: evaluacion-desempeno-db
+    plan: free
+    region: ohio
+
+  # Base de Datos Redis (Caché)
+  - type: redis
+    name: evaluacion-desempeno-redis
+    plan: free
+    region: ohio
+    maxmemoryPolicy: noeviction
+
+  # Backend (NestJS)
+  - type: web
+    name: evaluacion-desempeno-api
+    env: node
+    plan: free
+    region: ohio
+    rootDir: apps/api
+    buildCommand: pnpm install && npx turbo run build --filter=@repo/api
+    startCommand: pnpm run start:prod
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: evaluacion-desempeno-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: evaluacion-desempeno-redis
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: PORT
+        value: "3001"
+      # Front end URL para CORS
+      - key: FRONTEND_URL
+        value: "https://TU-SITIO.netlify.app"
