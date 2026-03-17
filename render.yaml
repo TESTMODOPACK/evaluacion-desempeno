@@ -1,6 +1,6 @@
 services:
   # Base de Datos PostgreSQL
-  - type: psql
+  - type: postgres
     name: evaluacion-desempeno-db
     plan: free
     region: ohio
