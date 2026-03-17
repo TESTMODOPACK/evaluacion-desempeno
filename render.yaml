@@ -1,10 +1,12 @@
-services:
+databases:
   # Base de Datos PostgreSQL
-  - type: postgres
-    name: evaluacion-desempeno-db
+  - name: evaluacion-desempeno-db
+    databaseName: evaluacion
+    user: eval_user
     plan: free
     region: ohio
 
+services:
   # Base de Datos Redis (Caché)
   - type: redis
     name: evaluacion-desempeno-redis
