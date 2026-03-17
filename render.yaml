@@ -21,9 +21,8 @@ services:
     env: node
     plan: free
     region: ohio
-    rootDir: apps/api
-    buildCommand: pnpm install && npx turbo run build --filter=@repo/api
-    startCommand: pnpm run start:prod
+    buildCommand: pnpm install && pnpm run db:migrate:prod && pnpm run db:seed && npx turbo run build --filter=@repo/api
+    startCommand: pnpm --filter=@repo/api run start:prod
     envVars:
       - key: DATABASE_URL
         fromDatabase:
