@@ -4,10 +4,10 @@ import { Button } from '../../components/ui/Button';
 import { api, CURRENT_USER_EMAIL } from '../../lib/api';
 
 export default async function MiDesempenoPage() {
-  let profile = null;
-  let goals = [];
-  let feedback = [];
-  let dashboardData = null;
+  let profile: any = null;
+  let goals: any[] = [];
+  let feedback: any[] = [];
+  let dashboardData: any = null;
 
   try {
     profile = await api.get(`/employees/${CURRENT_USER_EMAIL}/profile`, { next: { revalidate: 0 } });

@@ -3,8 +3,8 @@ import { Badge } from '../components/ui/Badge';
 import { api, CURRENT_USER_EMAIL } from '../lib/api';
 
 export default async function HomePage() {
-  let data = null;
-  let error = null;
+  let data: any = null;
+  let error: string | null = null;
 
   try {
     data = await api.get(`/employees/${CURRENT_USER_EMAIL}/dashboard`, { next: { revalidate: 0 } });
