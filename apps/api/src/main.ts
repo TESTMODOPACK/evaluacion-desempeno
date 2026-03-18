@@ -12,37 +12,6 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { AuditInterceptor } from './common/interceptors/audit.interceptor';
 
 async function bootstrap() {
-    const app = await NestFactory.create(AppModule, {
-        logger: ['error', 'warn', 'log', 'debug'],
-    });
-
-    const configService = app.get(ConfigService);
-    const port = configService.get<number>('PORT', 3001);
-    const corsOrigins = configService.get<string>('CORS_ORIGINS', 'http://localhost:3002');
-
-    // ----- Seguridad -----
-    app.use(helmet({
-        contentSecurityPolicy: {
-            directives: {
-                defaultSrc: ["'self'"],
-                styleSrc: ["'self'", "'unsafe-inline'"],
-                scriptSrc: ["'self'"],
-                imgSrc: ["'self'", 'data:', 'https:'],
-            },
-        },
-    }));
-
-    app.enableCors({
-        origin: corsOrigins.split(','),
-        methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-        allowedHeaders: ['Content-Type', 'Authorization', 'X-Org-ID'],
-        credentials: true,
-    });
-
-    // ----- Prefijo y versioning -----
-    app.setGlobalPrefix('api');
-    app.enableVersioning({
-        type: VersioningType.URI,
         defaultVersion: '1',
     });
 

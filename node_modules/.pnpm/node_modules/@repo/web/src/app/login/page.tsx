@@ -30,7 +30,8 @@ export default function LoginPage() {
         setError('Respuesta inválida del servidor.');
       }
     } catch (err: any) {
-      setError('Credenciales inválidas. Verifica tu correo y contraseña.');
+      console.error(err);
+      setError(`Error: ${err.message === 'Failed to fetch' ? 'No se pudo conectar al servidor (Revisa si la API está encendida)' : 'Credenciales inválidas. Verifica tu correo y contraseña.'}`);
     } finally {
       if (!error) setLoading(false); 
       // If success, keep loading true to prevent fast flashes before redirect
