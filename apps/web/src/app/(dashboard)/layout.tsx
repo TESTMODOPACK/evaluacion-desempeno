@@ -21,11 +21,3 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     </ProtectedRoute>
   );
 }
-        <Header />
-        <main className="mx-auto w-full max-w-6xl px-8 py-8 animate-fade-in">
-          {children}
-        </main>
-      </div>
-    </div>
-  );
-}
