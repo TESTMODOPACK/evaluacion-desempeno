@@ -1,4 +1,5 @@
 import { PrismaClient, UserRole, ObjectiveStatus, ObjectiveType, KeyResultType, CycleType, CycleStatus } from '@prisma/client';
+import * as bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
@@ -39,12 +40,16 @@ async function main() {
   });
 
   // 3. Create Users
+  const defaultPassword = 'Modopack123!';
+  const hashedPassword = bcrypt.hashSync(defaultPassword, 10);
+
   const hrUser = await prisma.user.upsert({
     where: { organizationId_email: { organizationId: org.id, email: 'rrhh@acme.com' } },
-    update: {},
+    update: { passwordHash: hashedPassword },
     create: {
       organizationId: org.id,
       email: 'rrhh@acme.com',
+      passwordHash: hashedPassword,
       name: 'María HR',
       role: UserRole.HR_ADMIN,
     },
@@ -52,10 +57,11 @@ async function main() {
 
   const employeeUser = await prisma.user.upsert({
     where: { organizationId_email: { organizationId: org.id, email: 'ricardo@acme.com' } },
-    update: {},
+    update: { passwordHash: hashedPassword },
     create: {
       organizationId: org.id,
       email: 'ricardo@acme.com',
+      passwordHash: hashedPassword,
       name: 'Ricardo M.',
       role: UserRole.EMPLOYEE,
     },
@@ -192,8 +198,9 @@ async function main() {
 
   console.log('Seed completed successfully!');
   console.log('Seeded Users:');
-  console.log(`- HR Admin: ${hrUser.email}`);
-  console.log(`- Employee: ${employeeUser.email}`);
+  console.log(`- HR Admin: rrhh@acme.com`);
+  console.log(`- Employee: ricardo@acme.com`);
+  console.log(`- Default Password: Modopack123!`);
   console.log(`- Employee ID: ${ricardoEmployee.id}`);
 }
 
