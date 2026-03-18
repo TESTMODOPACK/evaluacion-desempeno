@@ -94,7 +94,7 @@ async function bootstrap() {
         });
     }
 
-    await app.listen(port);
+    await app.listen(port, '0.0.0.0');
     console.log(`🚀 API corriendo en: http://localhost:${port}/api/v1`);
     console.log(`📚 Swagger disponible en: http://localhost:${port}/api/docs`);
     console.log(`📊 Métricas Prometheus en: http://localhost:9464/metrics`);
