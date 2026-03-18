@@ -1,10 +1,11 @@
-import { NodeSDK } from '@opentelemetry/sdk-node';
-import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
-import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-grpc';
-import { PrometheusExporter } from '@opentelemetry/exporter-prometheus';
+// import { NodeSDK } from '@opentelemetry/sdk-node';
+// import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
+// import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-grpc';
+// import { PrometheusExporter } from '@opentelemetry/exporter-prometheus';
 // import { Resource } from '@opentelemetry/resources';
 // import { SEMRESATTRS_SERVICE_NAME, SEMRESATTRS_SERVICE_VERSION } from '@opentelemetry/semantic-conventions';
 
+/*
 const prometheusExporter = new PrometheusExporter({
     port: 9464,
     endpoint: '/metrics',
@@ -27,3 +28,5 @@ sdk.start();
 process.on('SIGTERM', () => {
     sdk.shutdown().catch(console.error);
 });
+*/
+export {};
