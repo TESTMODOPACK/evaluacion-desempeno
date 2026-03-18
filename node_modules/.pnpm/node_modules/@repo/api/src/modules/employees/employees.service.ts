@@ -1,8 +1,7 @@
-import { Injectable, NotFoundException } from '@common/decorators'; // Wait, let me just use standard imports
-import { Injectable as NestInjectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 
-@NestInjectable()
+@Injectable()
 export class EmployeesService {
   constructor(private prisma: PrismaService) {}
 
@@ -66,7 +65,7 @@ export class EmployeesService {
     });
 
     const avgOkrProgress = activeObjectives.length > 0
-      ? activeObjectives.reduce((sum, obj) => sum + obj.progress, 0) / activeObjectives.length
+      ? activeObjectives.reduce((sum: number, obj: any) => sum + obj.progress, 0) / activeObjectives.length
       : 0;
 
     // 4. Actividad reciente combinada (Evaluaciones + Feedback)
@@ -91,14 +90,14 @@ export class EmployeesService {
 
     // Mapear y ordenar la actividad reciente
     const activities = [
-      ...recentFeedback.map(f => ({
+      ...recentFeedback.map((f: any) => ({
         id: `fb-${f.id}`,
         title: 'Feedback recibido',
         desc: `${f.from.firstName} ${f.from.lastName} te ha dejado un comentario.`,
         date: f.createdAt,
         type: 'feedback'
       })),
-      ...recentEvaluations.map(e => ({
+      ...recentEvaluations.map((e: any) => ({
         id: `ev-${e.id}`,
         title: `Evaluación asignada: ${e.reviewCycle.name}`,
         desc: `Tienes una evaluación pendiente de realizar.`,
