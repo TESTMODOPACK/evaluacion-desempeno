@@ -17,9 +17,9 @@ export default async function MiDesempenoPage() {
         api.get(`/feedback/inbox/${profile.id}`, { next: { revalidate: 0 } }),
         api.get(`/employees/${CURRENT_USER_EMAIL}/dashboard`, { next: { revalidate: 0 } })
       ]);
-      goals = goalsRes;
-      feedback = feedbackRes;
-      dashboardData = dashRes;
+      goals = goalsRes as any[];
+      feedback = feedbackRes as any[];
+      dashboardData = dashRes as any;
     }
   } catch (err) {
     console.error('Failed to load mi-desempeno data:', err);
