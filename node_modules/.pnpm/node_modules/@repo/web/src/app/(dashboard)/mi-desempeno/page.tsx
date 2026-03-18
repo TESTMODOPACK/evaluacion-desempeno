@@ -1,28 +1,53 @@
+'use client';
+
+import { useState, useEffect } from 'react';
 import { Card } from '../../../components/ui/Card';
 import { Badge } from '../../../components/ui/Badge';
 import { Button } from '../../../components/ui/Button';
 import { api, CURRENT_USER_EMAIL } from '../../../lib/api';
 
-export default async function MiDesempenoPage() {
-  let profile: any = null;
-  let goals: any[] = [];
-  let feedback: any[] = [];
-  let dashboardData: any = null;
+export default function MiDesempenoPage() {
+  const [profile, setProfile] = useState<any>(null);
+  const [goals, setGoals] = useState<any[]>([]);
+  const [feedback, setFeedback] = useState<any[]>([]);
+  const [dashboardData, setDashboardData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
-  try {
-    profile = await api.get(`/employees/${CURRENT_USER_EMAIL}/profile`, { next: { revalidate: 0 } });
-    if (profile && profile.id) {
-      const [goalsRes, feedbackRes, dashRes] = await Promise.all([
-        api.get(`/goals/employee/${profile.id}`, { next: { revalidate: 0 } }),
-        api.get(`/feedback/inbox/${profile.id}`, { next: { revalidate: 0 } }),
-        api.get(`/employees/${CURRENT_USER_EMAIL}/dashboard`, { next: { revalidate: 0 } })
-      ]);
-      goals = goalsRes as any[];
-      feedback = feedbackRes as any[];
-      dashboardData = dashRes as any;
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const userStr = localStorage.getItem('user');
+        const user = userStr ? JSON.parse(userStr) : null;
+        const email = user?.email || CURRENT_USER_EMAIL;
+
+        const profileRes = await api.get(`/employees/${email}/profile`);
+        setProfile(profileRes);
+        
+        if (profileRes && profileRes.id) {
+          const [goalsRes, feedbackRes, dashRes] = await Promise.all([
+            api.get(`/goals/employee/${profileRes.id}`),
+            api.get(`/feedback/inbox/${profileRes.id}`),
+            api.get(`/employees/${email}/dashboard`)
+          ]);
+          setGoals(goalsRes as any[]);
+          setFeedback(feedbackRes as any[]);
+          setDashboardData(dashRes as any);
+        }
+      } catch (err) {
+        console.error('Failed to load mi-desempeno data:', err);
+      } finally {
+        setLoading(false);
+      }
     }
-  } catch (err) {
-    console.error('Failed to load mi-desempeno data:', err);
+    loadData();
+  }, []);
+
+  if (loading) {
+     return (
+        <div className="flex justify-center items-center h-64">
+           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-900"></div>
+        </div>
+     );
   }
 
   // Evaluaciones activas sacadas del dashboardData recentActivity para simplificar en MVP
