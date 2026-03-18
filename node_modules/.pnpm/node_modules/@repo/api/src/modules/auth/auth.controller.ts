@@ -1,22 +1,25 @@
-import { Body, Controller, Get, Post } from '@nestjs/common';
+import { Controller, Post, UseGuards, Request, Get, HttpCode, HttpStatus } from '@nestjs/common';
+import { AuthService } from './auth.service';
+import { LocalAuthGuard } from './guards/local-auth.guard';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { CurrentUser } from './decorators/current-user.decorator';
 
-@Controller({ path: 'auth', version: '1' })
+@Controller('auth')
 export class AuthController {
-  @Get('me')
-  me() {
-    return {
-      id: 'demo-user',
-      email: 'demo@empresa.com',
-      name: 'Usuario Demo',
-      role: 'HR_ADMIN',
-    };
+  constructor(private readonly authService: AuthService) {}
+
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(LocalAuthGuard)
+  @Post('login')
+  async login(@Request() req: any) {
+    // req.user is populated by LocalStrategy (meaning credentials matched)
+    return this.authService.login(req.user);
   }
 
-  @Post('refresh')
-  refresh(@Body() body: { refreshToken?: string }) {
-    return {
-      accessToken: 'demo-access-token',
-      refreshToken: body?.refreshToken ?? 'demo-refresh-token',
-    };
+  @UseGuards(JwtAuthGuard)
+  @Get('me')
+  getProfile(@CurrentUser() user: any) {
+    // Return current user session derived from JWT payload
+    return user;
   }
 }
