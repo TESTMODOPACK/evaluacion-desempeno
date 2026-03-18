@@ -45,7 +45,7 @@ export const api = {
     });
 
     if (!response.ok) {
-      throw new Error(`API Error: ${response.statusText}`);
+      throw new Error(`${response.status} ${response.statusText}`);
     }
 
     return response.json();

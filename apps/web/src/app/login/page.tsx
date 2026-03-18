@@ -31,7 +31,16 @@ export default function LoginPage() {
       }
     } catch (err: any) {
       console.error(err);
-      setError(`Error: ${err.message === 'Failed to fetch' ? 'No se pudo conectar al servidor (Revisa si la API está encendida)' : 'Credenciales inválidas. Verifica tu correo y contraseña.'}`);
+      const msg = err.message || '';
+      if (msg === 'Failed to fetch') {
+         setError('No se pudo conectar al servidor (Revisa si la API está encendida o la variable de entorno).');
+      } else if (msg.includes('401')) {
+         setError('Credenciales inválidas. Verifica tu correo y contraseña.');
+      } else if (msg.includes('404')) {
+         setError('Error 404: El enlace de la API es incorrecto. Verifica que NEXT_PUBLIC_API_URL termine en /api/v1');
+      } else {
+         setError(`Error del servidor: ${msg}`);
+      }
     } finally {
       if (!error) setLoading(false); 
       // If success, keep loading true to prevent fast flashes before redirect
