@@ -1,6 +1,6 @@
-import { Card } from '../components/ui/Card';
-import { Badge } from '../components/ui/Badge';
-import { api, CURRENT_USER_EMAIL } from '../lib/api';
+import { Card } from '../../components/ui/Card';
+import { Badge } from '../../components/ui/Badge';
+import { api, CURRENT_USER_EMAIL } from '../../lib/api';
 
 export default async function HomePage() {
   let data: any = null;

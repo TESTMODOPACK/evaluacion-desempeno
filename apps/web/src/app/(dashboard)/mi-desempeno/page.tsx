@@ -1,7 +1,7 @@
-import { Card } from '../../components/ui/Card';
-import { Badge } from '../../components/ui/Badge';
-import { Button } from '../../components/ui/Button';
-import { api, CURRENT_USER_EMAIL } from '../../lib/api';
+import { Card } from '../../../components/ui/Card';
+import { Badge } from '../../../components/ui/Badge';
+import { Button } from '../../../components/ui/Button';
+import { api, CURRENT_USER_EMAIL } from '../../../lib/api';
 
 export default async function MiDesempenoPage() {
   let profile: any = null;

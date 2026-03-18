@@ -2,11 +2,11 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Card } from '../../../../components/ui/Card';
-import { Button } from '../../../../components/ui/Button';
-import { Input } from '../../../../components/ui/Input';
-import { Badge } from '../../../../components/ui/Badge';
-import { api, CURRENT_ORG_ID } from '../../../../lib/api';
+import { Card } from '../../../../../components/ui/Card';
+import { Button } from '../../../../../components/ui/Button';
+import { Input } from '../../../../../components/ui/Input';
+import { Badge } from '../../../../../components/ui/Badge';
+import { api, CURRENT_ORG_ID } from '../../../../../lib/api';
 
 export default function NuevoCicloPage() {
   const router = useRouter();
