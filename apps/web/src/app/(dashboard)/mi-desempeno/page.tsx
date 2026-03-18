@@ -7,7 +7,6 @@ import { Button } from '../../../components/ui/Button';
 import { api, CURRENT_USER_EMAIL } from '../../../lib/api';
 
 export default function MiDesempenoPage() {
-  const [profile, setProfile] = useState<any>(null);
   const [goals, setGoals] = useState<any[]>([]);
   const [feedback, setFeedback] = useState<any[]>([]);
   const [dashboardData, setDashboardData] = useState<any>(null);
@@ -21,7 +20,6 @@ export default function MiDesempenoPage() {
         const email = user?.email || CURRENT_USER_EMAIL;
 
         const profileRes = await api.get(`/employees/${email}/profile`);
-        setProfile(profileRes);
         
         if (profileRes && profileRes.id) {
           const [goalsRes, feedbackRes, dashRes] = await Promise.all([
