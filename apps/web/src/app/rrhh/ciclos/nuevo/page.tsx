@@ -34,7 +34,7 @@ export default function NuevoCicloPage() {
   const handleNext = () => setCurrentStep((prev) => Math.min(prev + 1, 4));
   const handleBack = () => setCurrentStep((prev) => Math.max(prev - 1, 1));
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleChange = (e: any) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
